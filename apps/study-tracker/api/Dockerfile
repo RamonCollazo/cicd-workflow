@@ -23,6 +23,11 @@ FROM python:3.14-alpine
 # Create a non-root user and group with specific IDs
 RUN addgroup -S -g 1000 app && adduser -S -u 1000 -G app app
 
+# Persistent data dir.
+ENV DATA_DIR=/data
+RUN mkdir -p /data && chown app:app /data
+VOLUME ["/data"]
+
 # Copy the environment, but not the source code
 COPY --from=builder --chown=app:app /app/.venv /app/.venv
 
