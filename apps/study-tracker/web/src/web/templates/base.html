@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Study Tracker{% endblock %}</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 80%; /* Make table wide */
+            border-collapse: collapse; /* Remove gaps between cells */
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd; /* Add simple borders */
+            padding: 12px; /* Add padding for spacing */
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2; /* Light grey background for headers */
+        }
+        form div {
+            margin-bottom: 10px;
+        }
+        label {
+            display: inline-block;
+            width: 150px;
+        }
+        button {
+            padding: 8px 15px;
+            cursor: pointer;
+        }
+        .flashes {
+            list-style: none;
+            padding: 0;
+            margin: 16px 0;
+            width: 80%;
+        }
+        .flash {
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            border: 1px solid transparent;
+        }
+        .flash-error {
+            background-color: #fdecea;
+            border-color: #f5c2c0;
+            color: #8a1f1a;
+        }
+        .flash-warning {
+            background-color: #fff8e1;
+            border-color: #ffe082;
+            color: #6d4c00;
+        }
+        .flash-info {
+            background-color: #e8f5e9;
+            border-color: #a5d6a7;
+            color: #1b5e20;
+        }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <h1>Study Tracker</h1>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul class="flashes">
+          {% for category, msg in messages %}
+            <li class="flash flash-{{ category }}">{{ msg }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+    {% block scripts %}{% endblock %}
+</body>
+</html>
