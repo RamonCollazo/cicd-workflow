@@ -7,9 +7,10 @@ case-insensitively.
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Annotated
 
 from pydantic import Field, field_validator, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -28,10 +29,11 @@ class Settings(BaseSettings):
     # Storage
     data_dir: Path = Path("./data")
 
-    # CORS
-    cors_allow_origins: list[str] = ["*"]
-    cors_allow_methods: list[str] = ["*"]
-    cors_allow_headers: list[str] = ["*"]
+    # CORS — NoDecode disables pydantic-settings' default JSON parse for
+    # env values, letting our @field_validator handle "*" / CSV strings.
+    cors_allow_origins: Annotated[list[str], NoDecode] = ["*"]
+    cors_allow_methods: Annotated[list[str], NoDecode] = ["*"]
+    cors_allow_headers: Annotated[list[str], NoDecode] = ["*"]
     cors_allow_credentials: bool = False
 
     @field_validator(
