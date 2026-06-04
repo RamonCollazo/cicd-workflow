@@ -1,4 +1,4 @@
-name: Study Tracker API Tests
+name: Study Tracker Web Tests
 
 on:
   pull_request:
