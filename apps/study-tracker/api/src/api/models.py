@@ -59,11 +59,19 @@ class Stats(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    total_time: int = Field(..., description="Total study time in minutes", examples=[120])
-    time_by_tag: Dict[str, int] = Field(
-        ..., description="Study time grouped by tag", examples=[{"aws": 90, "kubernetes": 30}]
+    total_time: int = Field(
+        ..., description="Total study time in minutes", examples=[120]
     )
-    total_sessions: int = Field(..., description="Total number of study sessions", examples=[4])
+    time_by_tag: Dict[str, int] = Field(
+        ...,
+        description="Study time grouped by tag",
+        examples=[{"aws": 90, "kubernetes": 30}],
+    )
+    total_sessions: int = Field(
+        ..., description="Total number of study sessions", examples=[4]
+    )
     sessions_by_tag: Dict[str, int] = Field(
-        ..., description="Number of sessions grouped by tag", examples=[{"aws": 3, "kubernetes": 1}]
+        ...,
+        description="Number of sessions grouped by tag",
+        examples=[{"aws": 3, "kubernetes": 1}],
     )

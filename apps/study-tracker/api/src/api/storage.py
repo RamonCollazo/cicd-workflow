@@ -93,9 +93,7 @@ def get_all_sessions() -> List[StudySession]:
             try:
                 sessions.append(_parse_row(row))
             except Exception as e:
-                logger.warning(
-                    "Skipping malformed row at line %d: %s", line_no, e
-                )
+                logger.warning("Skipping malformed row at line %d: %s", line_no, e)
                 continue
 
     logger.info("Retrieved %d sessions", len(sessions))
@@ -107,9 +105,7 @@ def get_sessions_by_tag(tag: str) -> List[StudySession]:
     needle = tag.strip().lower()
     all_sessions = get_all_sessions()
     filtered_sessions = [s for s in all_sessions if s.tag == needle]
-    logger.info(
-        "Retrieved %d sessions with tag %r", len(filtered_sessions), needle
-    )
+    logger.info("Retrieved %d sessions with tag %r", len(filtered_sessions), needle)
     return filtered_sessions
 
 
