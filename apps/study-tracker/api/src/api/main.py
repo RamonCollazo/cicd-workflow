@@ -46,12 +46,8 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 
     Internal error details are kept out of the response body.
     """
-    logger.exception(
-        "Unhandled error on %s %s", request.method, request.url.path
-    )
-    return JSONResponse(
-        status_code=500, content={"detail": "Internal server error"}
-    )
+    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 
 @app.get("/")
