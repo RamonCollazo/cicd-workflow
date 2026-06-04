@@ -88,14 +88,10 @@ def add_session():
 
     try:
         _get_client().create_session(minutes, tag)
-        logger.info(
-            "Successfully added session: %d mins, tag=%r", minutes, tag
-        )
+        logger.info("Successfully added session: %d mins, tag=%r", minutes, tag)
         flash("Session saved.", "info")
     except ApiError as e:
-        logger.exception(
-            "Failed to add session %d mins, tag=%r: %s", minutes, tag, e
-        )
+        logger.exception("Failed to add session %d mins, tag=%r: %s", minutes, tag, e)
         flash("Could not save session — API unavailable.", "error")
 
     return redirect(url_for("index"))
@@ -158,9 +154,7 @@ def create_app(settings: Settings | None = None) -> Flask:
 
     # Routes
     app.add_url_rule("/", "index", index, methods=["GET"])
-    app.add_url_rule(
-        "/add_session", "add_session", add_session, methods=["POST"]
-    )
+    app.add_url_rule("/add_session", "add_session", add_session, methods=["POST"])
     app.add_url_rule("/health", "health", health, methods=["GET"])
 
     # Global error handler. Bypassed when DEBUG=True so the Werkzeug
