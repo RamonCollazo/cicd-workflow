@@ -4,6 +4,14 @@ on:
     tags:
       - "study-tracker-api*"
       - "study-tracker-web*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   REGISTRY: ghcr.io
   REPO_NAME: study-tracker
