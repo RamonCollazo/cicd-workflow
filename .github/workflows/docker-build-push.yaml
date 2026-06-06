@@ -5,7 +5,8 @@ on:
       - "study-tracker-api*"
 env:
   REGISTRY: ghcr.io
-  API_IMAGE_NAME: ${{ github.repository_owner }}/study-tracker-api
+  REPO_NAME: study-tracker
+  COMPONENT: api
 jobs:
   build-and-push-api:
     name: Build and Push API
@@ -26,9 +27,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract tag name
-        id: tag
-        run: echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      - name: Compute image name and tags
+        id: image
+        env:
+          OWNER: ${{ github.repository_owner }}
+          GIT_TAG: ${{ github.ref_name }}
+        run: |
+          # Lowercase the owner segment for GHCR
+          IMAGE="${REGISTRY}/${OWNER,,}/${REPO_NAME}"
+          # Strip the "study-tracker-" prefix so v0.3.0 becomes the version
+          VERSION="${GIT_TAG#${REPO_NAME}-}"
+          {
+            echo "name=${IMAGE}"
+            echo "version_tag=${VERSION}"
+            echo "latest_tag=${COMPONENT}-latest"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Build and push API Docker image
         uses: docker/build-push-action@v5
@@ -36,8 +49,8 @@ jobs:
           context: ./apps/study-tracker/api
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.API_IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}
-            ${{ env.REGISTRY }}/${{ env.API_IMAGE_NAME }}:latest
+            ${{ steps.image.outputs.name }}:${{ steps.image.outputs.version_tag }}
+            ${{ steps.image.outputs.name }}:${{ steps.image.outputs.latest_tag }}
     outputs:
-      tag: ${{ steps.tag.outputs.TAG }}
+      tag: ${{ steps.image.outputs.version_tag }}
       app: study-tracker-api
