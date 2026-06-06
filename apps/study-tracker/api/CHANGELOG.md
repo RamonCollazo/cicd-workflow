@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/RamonCollazo/cicd-workflow/compare/study-tracker-api-v0.3.1...study-tracker-api-v0.3.2) (2026-06-06)
+
+
+### Bug Fixes
+
+* trigger end-to-end pipeline smoke test ([#30](https://github.com/RamonCollazo/cicd-workflow/issues/30)) ([1229406](https://github.com/RamonCollazo/cicd-workflow/commit/1229406da4f9581db97e8cb643396d84618649f9))
+
 ## [0.3.1](https://github.com/RamonCollazo/cicd-workflow/compare/study-tracker-api-v0.3.0...study-tracker-api-v0.3.1) (2026-06-06)
 
 
