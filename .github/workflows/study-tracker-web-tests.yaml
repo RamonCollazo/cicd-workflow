@@ -34,7 +34,6 @@ jobs:
     with:
       app_name: web
       working_directory: ./apps/study-tracker/web/
-      coverage_module: src/web/
       image_name: study-tracker-web
     permissions:
       contents: read

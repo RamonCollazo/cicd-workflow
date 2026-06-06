@@ -11,8 +11,6 @@ dependencies = [
     "fastapi>=0.136.3",
     "pydantic>=2.13.4",
     "pydantic-settings>=2.14.1",
-    "pytest-cov>=7.1.0",
-    "ruff>=0.15.15",
     "uvicorn>=0.48.0",
 ]
 
@@ -21,13 +19,21 @@ dev = [
     "httpx>=0.28.1",
     "pytest>=9.0.3",
     "pytest-asyncio>=1.4.0",
+    "pytest-cov>=7.1.0",
     "ruff>=0.15.15",
 ]
 
 [project.scripts]
 study-tracker-api = "api.main:main"
 
+[tool.ruff]
+target-version = "py314"
+
+[tool.coverage.run]
+source = ["src/api"]
+
 [tool.pytest.ini_options]
+addopts = "--cov --cov-report=xml --cov-fail-under=80"
 asyncio_default_fixture_loop_scope = "function"
 
 [tool.hatch.build.targets.wheel]
