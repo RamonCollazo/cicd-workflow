@@ -1,9 +1,10 @@
 name: Build and Push Docker Images
+
 on:
   push:
     tags:
-      - "study-tracker-api*"
-      - "study-tracker-web*"
+      - "study-tracker-api-v*"
+      - "study-tracker-web-v*"
 
 permissions:
   contents: read
@@ -15,20 +16,22 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   REPO_NAME: study-tracker
-  API: api
-  WEB: web
+
 jobs:
   build-and-push-api:
     name: Build and Push API
     runs-on: ubuntu-latest
-    # Only run for api tags
-    if: contains(github.ref, 'study-tracker-api')
+    # Only run for api version tags (study-tracker-api-vX.Y.Z)
+    if: startsWith(github.ref_name, 'study-tracker-api-v')
     permissions:
       contents: read
       packages: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to the Container registry
         uses: docker/login-action@v4
@@ -42,15 +45,18 @@ jobs:
         env:
           OWNER: ${{ github.repository_owner }}
           GIT_TAG: ${{ github.ref_name }}
+          TAG_PREFIX: study-tracker-api-v
         run: |
           # Lowercase the owner segment for GHCR
           IMAGE="${REGISTRY}/${OWNER,,}/${REPO_NAME}"
-          # Strip the "study-tracker-" prefix so v0.3.0 becomes the version
-          VERSION="${GIT_TAG#${REPO_NAME}-}"
+          # Strip the full "study-tracker-api-v" prefix to get bare semver, then re-prefix with v.
+          # Example: study-tracker-api-v0.3.1 -> 0.3.1 -> v0.3.1
+          BARE="${GIT_TAG#${TAG_PREFIX}}"
+          VERSION_TAG="v${BARE}"
           {
             echo "name=${IMAGE}"
-            echo "version_tag=${VERSION}"
-            echo "latest_tag=${API}-latest"
+            echo "version_tag=${VERSION_TAG}"
+            echo "latest_tag=api-latest"
           } >> "$GITHUB_OUTPUT"
 
       - name: Build and push API Docker image
@@ -58,6 +64,8 @@ jobs:
         with:
           context: ./apps/study-tracker/api
           push: true
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
           tags: |
             ${{ steps.image.outputs.name }}:${{ steps.image.outputs.version_tag }}
             ${{ steps.image.outputs.name }}:${{ steps.image.outputs.latest_tag }}
@@ -68,14 +76,17 @@ jobs:
   build-and-push-web:
     name: Build and Push Web
     runs-on: ubuntu-latest
-    # Only run for web tags
-    if: contains(github.ref, 'study-tracker-web')
+    # Only run for web version tags (study-tracker-web-vX.Y.Z)
+    if: startsWith(github.ref_name, 'study-tracker-web-v')
     permissions:
       contents: read
       packages: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to the Container registry
         uses: docker/login-action@v4
@@ -89,15 +100,18 @@ jobs:
         env:
           OWNER: ${{ github.repository_owner }}
           GIT_TAG: ${{ github.ref_name }}
+          TAG_PREFIX: study-tracker-web-v
         run: |
           # Lowercase the owner segment for GHCR
           IMAGE="${REGISTRY}/${OWNER,,}/${REPO_NAME}"
-          # Strip the "study-tracker-" prefix so v0.3.0 becomes the version
-          VERSION="${GIT_TAG#${REPO_NAME}-}"
+          # Strip the full "study-tracker-web-v" prefix to get bare semver, then re-prefix with v.
+          # Example: study-tracker-web-v0.1.0 -> 0.1.0 -> v0.1.0
+          BARE="${GIT_TAG#${TAG_PREFIX}}"
+          VERSION_TAG="v${BARE}"
           {
             echo "name=${IMAGE}"
-            echo "version_tag=${VERSION}"
-            echo "latest_tag=${WEB}-latest"
+            echo "version_tag=${VERSION_TAG}"
+            echo "latest_tag=web-latest"
           } >> "$GITHUB_OUTPUT"
 
       - name: Build and push Web Docker image
@@ -105,6 +119,8 @@ jobs:
         with:
           context: ./apps/study-tracker/web
           push: true
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
           tags: |
             ${{ steps.image.outputs.name }}:${{ steps.image.outputs.version_tag }}
             ${{ steps.image.outputs.name }}:${{ steps.image.outputs.latest_tag }}
