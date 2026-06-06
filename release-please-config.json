@@ -1,6 +1,6 @@
 {
   "packages": {
-    "./apps/study-tracker/api/": {
+    "apps/study-tracker/api/": {
       "release-type": "python",
       "package-name": "study-tracker-api",
       "component": "study-tracker-api",
