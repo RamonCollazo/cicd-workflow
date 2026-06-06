@@ -15,7 +15,6 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  REPO_NAME: study-tracker
 
 jobs:
   build-and-push-api:
@@ -46,9 +45,10 @@ jobs:
           OWNER: ${{ github.repository_owner }}
           GIT_TAG: ${{ github.ref_name }}
           TAG_PREFIX: study-tracker-api-v
+          IMAGE_NAME: study-tracker-api
         run: |
           # Lowercase the owner segment for GHCR
-          IMAGE="${REGISTRY}/${OWNER,,}/${REPO_NAME}"
+          IMAGE="${REGISTRY}/${OWNER,,}/${IMAGE_NAME}"
           # Strip the full "study-tracker-api-v" prefix to get bare semver, then re-prefix with v.
           # Example: study-tracker-api-v0.3.1 -> 0.3.1 -> v0.3.1
           BARE="${GIT_TAG#${TAG_PREFIX}}"
@@ -56,7 +56,7 @@ jobs:
           {
             echo "name=${IMAGE}"
             echo "version_tag=${VERSION_TAG}"
-            echo "latest_tag=api-latest"
+            echo "latest_tag=latest"
           } >> "$GITHUB_OUTPUT"
 
       - name: Build and push API Docker image
@@ -101,9 +101,10 @@ jobs:
           OWNER: ${{ github.repository_owner }}
           GIT_TAG: ${{ github.ref_name }}
           TAG_PREFIX: study-tracker-web-v
+          IMAGE_NAME: study-tracker-web
         run: |
           # Lowercase the owner segment for GHCR
-          IMAGE="${REGISTRY}/${OWNER,,}/${REPO_NAME}"
+          IMAGE="${REGISTRY}/${OWNER,,}/${IMAGE_NAME}"
           # Strip the full "study-tracker-web-v" prefix to get bare semver, then re-prefix with v.
           # Example: study-tracker-web-v0.1.0 -> 0.1.0 -> v0.1.0
           BARE="${GIT_TAG#${TAG_PREFIX}}"
@@ -111,7 +112,7 @@ jobs:
           {
             echo "name=${IMAGE}"
             echo "version_tag=${VERSION_TAG}"
-            echo "latest_tag=web-latest"
+            echo "latest_tag=latest"
           } >> "$GITHUB_OUTPUT"
 
       - name: Build and push Web Docker image
