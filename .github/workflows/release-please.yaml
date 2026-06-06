@@ -1,0 +1,17 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v5
+        id: release
+        with:
+          token: "${{ secrets.CICD_WORKFLOW }}"
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
