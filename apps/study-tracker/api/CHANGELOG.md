@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/RamonCollazo/cicd-workflow/compare/study-tracker-api-v0.3.0...study-tracker-api-v0.3.1) (2026-06-06)
+
+
+### Bug Fixes
+
+* **gha:** trigger docker build and push ([#16](https://github.com/RamonCollazo/cicd-workflow/issues/16)) ([27462f0](https://github.com/RamonCollazo/cicd-workflow/commit/27462f07cf7b35e67b93d2b72a2606263c0db5e2))
+
 ## [0.3.0](https://github.com/RamonCollazo/cicd-workflow/compare/study-tracker-api-v0.2.0...study-tracker-api-v0.3.0) (2026-06-06)
 
 
