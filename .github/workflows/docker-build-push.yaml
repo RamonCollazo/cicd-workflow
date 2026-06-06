@@ -3,10 +3,12 @@ on:
   push:
     tags:
       - "study-tracker-api*"
+      - "study-tracker-web*"
 env:
   REGISTRY: ghcr.io
   REPO_NAME: study-tracker
-  COMPONENT: api
+  API: api
+  WEB: web
 jobs:
   build-and-push-api:
     name: Build and Push API
@@ -40,7 +42,7 @@ jobs:
           {
             echo "name=${IMAGE}"
             echo "version_tag=${VERSION}"
-            echo "latest_tag=${COMPONENT}-latest"
+            echo "latest_tag=${API}-latest"
           } >> "$GITHUB_OUTPUT"
 
       - name: Build and push API Docker image
@@ -54,3 +56,50 @@ jobs:
     outputs:
       tag: ${{ steps.image.outputs.version_tag }}
       app: study-tracker-api
+
+  build-and-push-web:
+    name: Build and Push Web
+    runs-on: ubuntu-latest
+    # Only run for web tags
+    if: contains(github.ref, 'study-tracker-web')
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image name and tags
+        id: image
+        env:
+          OWNER: ${{ github.repository_owner }}
+          GIT_TAG: ${{ github.ref_name }}
+        run: |
+          # Lowercase the owner segment for GHCR
+          IMAGE="${REGISTRY}/${OWNER,,}/${REPO_NAME}"
+          # Strip the "study-tracker-" prefix so v0.3.0 becomes the version
+          VERSION="${GIT_TAG#${REPO_NAME}-}"
+          {
+            echo "name=${IMAGE}"
+            echo "version_tag=${VERSION}"
+            echo "latest_tag=${WEB}-latest"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and push Web Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/study-tracker/web
+          push: true
+          tags: |
+            ${{ steps.image.outputs.name }}:${{ steps.image.outputs.version_tag }}
+            ${{ steps.image.outputs.name }}:${{ steps.image.outputs.latest_tag }}
+    outputs:
+      tag: ${{ steps.image.outputs.version_tag }}
+      app: study-tracker-web
