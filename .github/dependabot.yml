@@ -1,0 +1,60 @@
+# Dependabot configuration
+# See: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# Note on uv.lock:
+#   Dependabot's `pip` ecosystem reads `pyproject.toml` but does not regenerate `uv.lock`.
+#   When merging a Dependabot PR for either Python app, run `uv lock` in that app's directory
+#   and amend the lockfile in a follow-up commit (or via the PR before merging).
+
+version: 2
+
+updates:
+  # GitHub Actions used in .github/workflows/
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ["*"]
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"
+      - "github-actions"
+
+  # Python dependencies for the API app
+  - package-ecosystem: pip
+    directory: /apps/study-tracker/api
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      api-deps:
+        patterns: ["*"]
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(api)"
+    labels:
+      - "dependencies"
+      - "python"
+      - "study-tracker-api"
+
+  # Python dependencies for the Web app
+  - package-ecosystem: pip
+    directory: /apps/study-tracker/web
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      web-deps:
+        patterns: ["*"]
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(web)"
+    labels:
+      - "dependencies"
+      - "python"
+      - "study-tracker-web"
