@@ -1,0 +1,82 @@
+name: Reusable - Test Python App
+
+on:
+  workflow_call:
+    inputs:
+      app_name:
+        description: "Short app identifier (e.g., api, web). Used for display, artifact name, and PR comment header."
+        required: true
+        type: string
+      working_directory:
+        description: "Path to the app directory, with trailing slash (e.g., ./apps/study-tracker/api/)."
+        required: true
+        type: string
+      coverage_module:
+        description: "Module path passed to pytest --cov (e.g., src/api/)."
+        required: true
+        type: string
+      image_name:
+        description: "Local Docker image name used for build and Trivy scan (e.g., study-tracker-api)."
+        required: true
+        type: string
+
+jobs:
+  test:
+    name: Test ${{ inputs.app_name }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+      - name: Install UV
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+      - name: Set up Python
+        run: uv python install
+      - name: Install dependencies
+        run: |
+          uv sync --locked --dev
+      - name: Lint with Ruff
+        run: |
+          uv run ruff check --output-format=github --target-version=py314 src tests
+          uv run ruff format --diff --check --target-version=py314 src tests
+      - name: Run tests with coverage
+        run: |
+          uv run pytest tests/ -v --cov=${{ inputs.coverage_module }} --cov-report=xml --cov-fail-under=80
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.app_name }}-coverage-report
+          path: ${{ inputs.working_directory }}coverage.xml
+          retention-days: 7
+        if: ${{ always() }}
+      - name: Coverage Report
+        uses: irongut/CodeCoverageSummary@v1.3.0
+        with:
+          filename: ${{ inputs.working_directory }}coverage.xml
+          badge: true
+          format: markdown
+          output: both
+      - name: Add Coverage PR Comment
+        uses: marocchino/sticky-pull-request-comment@v3
+        if: github.event_name == 'pull_request'
+        with:
+          header: ${{ inputs.app_name }}-test-coverage
+          recreate: true
+          path: code-coverage-results.md
+      - name: Build Docker image
+        run: docker build -t ${{ inputs.image_name }}:latest .
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: "${{ inputs.image_name }}:latest"
+          format: "table"
+          exit-code: "0"
+          # exit-code: '1' # Fail the workflow if vulnerabilities are found.
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "CRITICAL,HIGH"
