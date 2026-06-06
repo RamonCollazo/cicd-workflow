@@ -116,6 +116,10 @@ def handle_unhandled(e: Exception):
     return render_template("error.html"), 500
 
 
+# Marker for CI pipeline
+# This comment is used to trigger the CI pipeline when changes are made to this file.
+
+
 # --------------------------------------------------------------------- #
 # App factory
 # --------------------------------------------------------------------- #
