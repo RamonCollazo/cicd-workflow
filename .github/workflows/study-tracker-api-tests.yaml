@@ -34,7 +34,6 @@ jobs:
     with:
       app_name: api
       working_directory: ./apps/study-tracker/api/
-      coverage_module: src/api/
       image_name: study-tracker-api
     permissions:
       contents: read
