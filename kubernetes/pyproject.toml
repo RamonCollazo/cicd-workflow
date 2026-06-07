@@ -15,7 +15,7 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --tb=short --strict-markers"
-# Put the rootdir on sys.path so conftest.py can `from lib import ...`.
+# Put the rootdir on sys.path so conftest.py can `from helpers import ...`.
 # Without this, imports work locally only because uv's editable install
 # happens to add the project root via a .pth file; CI may not.
 pythonpath = ["."]
