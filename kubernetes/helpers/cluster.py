@@ -1,10 +1,12 @@
 """Subprocess helpers for k3d, kubectl, and docker.
 
 All commands use list-form arguments (no shell=True, no cmd.split()) and
-pass --context explicitly to kubectl so the user's global kubeconfig
-context is never mutated. Readiness uses `kubectl rollout status`, which
-blocks on the Deployment object directly and avoids the
-`kubectl wait pods --all` race (no resources at the instant of call).
+pass --context explicitly to kubectl so commands always target the
+intended cluster. The cluster fixture is responsible for ensuring the
+kubeconfig has a context entry for the cluster (see merge_kubeconfig).
+Readiness uses `kubectl rollout status`, which blocks on the Deployment
+object directly and avoids the `kubectl wait pods --all` race (no
+resources at the instant of call).
 """
 
 from __future__ import annotations
@@ -53,6 +55,19 @@ def delete_cluster(name: str) -> None:
     """Delete a k3d cluster. Idempotent — never raises if missing."""
     logger.info("deleting k3d cluster %r", name)
     _run(["k3d", "cluster", "delete", name], check=False)
+
+
+def merge_kubeconfig(name: str) -> None:
+    """Ensure ~/.kube/config has the context for this cluster.
+
+    `k3d cluster create` merges the kubeconfig automatically, but when the
+    cluster was created by a prior session and is being reused (or when the
+    kubeconfig has been wiped between sessions), the context is missing and
+    every kubectl --context call fails with "context does not exist".
+    Call this after we know a cluster exists, before any kubectl invocation.
+    """
+    logger.info("merging kubeconfig for k3d cluster %r", name)
+    _run(["k3d", "kubeconfig", "merge", name, "--kubeconfig-merge-default"])
 
 
 def build_image(tag: str, dockerfile: Path, context: Path) -> None:
