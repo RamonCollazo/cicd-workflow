@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: study-tracker-api
+  namespace: study-tracker
+spec:
+  selector:
+    component: study-tracker-api
+  ports:
+    - port: 3001
+  type: LoadBalancer

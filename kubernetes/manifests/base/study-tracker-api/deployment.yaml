@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: study-tracker-api
+  namespace: study-tracker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: study-tracker-api
+  template:
+    metadata:
+      labels:
+        component: study-tracker-api
+    spec:
+      containers:
+        - name: study-tracker-api
+          image: study-tracker-api:latest
+          ports:
+            - containerPort: 3001
+          resources:
+            limits:
+              memory: "512Mi"
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
