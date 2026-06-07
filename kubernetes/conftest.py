@@ -15,17 +15,25 @@ CLI options:
 from __future__ import annotations
 
 import logging
+import sys
 import uuid
 from collections.abc import Iterator
 from pathlib import Path
+
+# Ensure the kubernetes/ directory is on sys.path before importing our local
+# `helpers` package. pytest's `pythonpath` ini option is applied during
+# collection, but conftest is loaded earlier in pytest's bootstrap, so without
+# this insert the imports below fail on environments where the project is not
+# editable-installed (typical for fresh CI runners).
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import pytest
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 
-from lib import cluster as cluster_lib
-from lib import service_url
+from helpers import cluster as cluster_lib
+from helpers import service_url
 
 logger = logging.getLogger(__name__)
 

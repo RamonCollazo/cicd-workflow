@@ -61,7 +61,7 @@ uv run pytest -v -s --tb=long --no-cluster-setup -k <test_name>
 ```
 kubernetes/
 ├── conftest.py                # pytest options + fixtures (cluster, deployed_app, api_url, web_url, http, unique_tag)
-├── lib/
+├── helpers/
 │   ├── cluster.py             # subprocess wrappers for k3d / kubectl / docker
 │   └── service_url.py         # LoadBalancer IP discovery via `kubectl wait --for=jsonpath`
 ├── tests/
