@@ -15,9 +15,17 @@ CLI options:
 from __future__ import annotations
 
 import logging
+import sys
 import uuid
 from collections.abc import Iterator
 from pathlib import Path
+
+# Ensure the kubernetes/ directory is on sys.path before importing our local
+# `lib` package. pytest's `pythonpath` ini option is applied during collection,
+# but conftest is loaded earlier in pytest's bootstrap, so without this insert
+# the imports below fail on environments where the project isn't editable-
+# installed (most CI runners).
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import pytest
 import requests
