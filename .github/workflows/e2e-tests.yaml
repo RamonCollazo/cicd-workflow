@@ -1,0 +1,148 @@
+name: E2E Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check_paths:
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      web: ${{ steps.filter.outputs.web }}
+      e2e: ${{ steps.filter.outputs.e2e }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v4.0.1
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'apps/study-tracker/api/**'
+              - '.github/workflows/_test-python-app.yaml'
+              - '.github/workflows/e2e-tests.yaml'
+            web:
+              - 'apps/study-tracker/web/**'
+              - '.github/workflows/_test-python-app.yaml'
+              - '.github/workflows/e2e-tests.yaml'
+            e2e:
+              - 'kubernetes/**'
+              - '.github/workflows/e2e-tests.yaml'
+
+  api-tests:
+    name: Test API
+    needs: check_paths
+    if: |
+      needs.check_paths.outputs.api == 'true' ||
+      needs.check_paths.outputs.e2e == 'true'
+    uses: ./.github/workflows/_test-python-app.yaml
+    with:
+      app_name: api
+      working_directory: ./apps/study-tracker/api/
+      image_name: study-tracker-api
+    permissions:
+      contents: read
+      pull-requests: write
+
+  web-tests:
+    name: Test Web
+    needs: check_paths
+    if: |
+      needs.check_paths.outputs.web == 'true' ||
+      needs.check_paths.outputs.e2e == 'true'
+    uses: ./.github/workflows/_test-python-app.yaml
+    with:
+      app_name: web
+      working_directory: ./apps/study-tracker/web/
+      image_name: study-tracker-web
+    permissions:
+      contents: read
+      pull-requests: write
+
+  e2e:
+    name: E2E (k3d)
+    needs: [check_paths, api-tests, web-tests]
+    # Run e2e only if both upstream test workflows succeeded (or were
+    # skipped because they weren't relevant) AND something interesting
+    # actually changed in this PR/push.
+    if: |
+      always() &&
+      (needs.api-tests.result == 'success' || needs.api-tests.result == 'skipped') &&
+      (needs.web-tests.result == 'success' || needs.web-tests.result == 'skipped') &&
+      (needs.check_paths.outputs.api == 'true' ||
+       needs.check_paths.outputs.web == 'true' ||
+       needs.check_paths.outputs.e2e == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: ./kubernetes
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install pinned tools (k3d, kubectl, uv) via mise
+        uses: jdx/mise-action@v2
+
+      - name: Sync e2e dependencies
+        run: uv sync --group dev
+
+      - name: Run e2e suite
+        run: uv run pytest
+
+      - name: Cluster diagnostics on failure
+        if: failure()
+        run: |
+          set +e
+          CTX=k3d-study-tracker-cluster
+          echo "=== resources in study-tracker namespace ==="
+          kubectl --context "$CTX" get all -n study-tracker
+          echo ""
+          echo "=== pod descriptions ==="
+          kubectl --context "$CTX" describe pods -n study-tracker
+          echo ""
+          echo "=== api logs ==="
+          kubectl --context "$CTX" logs -n study-tracker -l component=study-tracker-api --tail=200
+          echo ""
+          echo "=== web logs ==="
+          kubectl --context "$CTX" logs -n study-tracker -l component=study-tracker-web --tail=200
+
+  e2e-required:
+    name: e2e-required
+    needs: [check_paths, api-tests, web-tests, e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Aggregate result
+        run: |
+          if [[ "${{ needs.check_paths.outputs.api }}" != "true" && \
+                "${{ needs.check_paths.outputs.web }}" != "true" && \
+                "${{ needs.check_paths.outputs.e2e }}" != "true" ]]; then
+            echo "No relevant paths changed; passing through."
+            exit 0
+          fi
+          if [[ "${{ needs.api-tests.result }}" != "success" && \
+                "${{ needs.api-tests.result }}" != "skipped" ]]; then
+            echo "API tests failed: ${{ needs.api-tests.result }}"
+            exit 1
+          fi
+          if [[ "${{ needs.web-tests.result }}" != "success" && \
+                "${{ needs.web-tests.result }}" != "skipped" ]]; then
+            echo "Web tests failed: ${{ needs.web-tests.result }}"
+            exit 1
+          fi
+          if [[ "${{ needs.e2e.result }}" == "success" ]]; then
+            echo "All checks passed."
+            exit 0
+          fi
+          echo "E2E failed or was cancelled: ${{ needs.e2e.result }}"
+          exit 1
