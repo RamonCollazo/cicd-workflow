@@ -1,7 +1,6 @@
 # cicd-workflow
 
-![API tests](https://github.com/RamonCollazo/cicd-workflow/actions/workflows/study-tracker-api-tests.yaml/badge.svg)
-![Web tests](https://github.com/RamonCollazo/cicd-workflow/actions/workflows/study-tracker-web-tests.yaml/badge.svg)
+![E2E Tests](https://github.com/RamonCollazo/cicd-workflow/actions/workflows/e2e-tests.yaml/badge.svg)
 ![Release Please](https://github.com/RamonCollazo/cicd-workflow/actions/workflows/release-please.yaml/badge.svg)
 ![Build & Push](https://github.com/RamonCollazo/cicd-workflow/actions/workflows/docker-build-push.yaml/badge.svg)
 ![Dependency Review](https://github.com/RamonCollazo/cicd-workflow/actions/workflows/dependency-review.yaml/badge.svg)
@@ -11,7 +10,7 @@ Repo for CI/CD workflow learning project. Houses two Python apps under `apps/stu
 
 ## Pipeline overview
 
-- **PR opened/updated** — for each touched app, a reusable test workflow runs lint (ruff), tests (pytest, ≥ 80% coverage), Docker build, and a Trivy scan (advisory, non-blocking). A `tests-required` aggregator job is the stable signal for branch protection. `Dependency Review` and `Gitleaks` also run on every PR.
+- **PR opened/updated** — `E2E Tests` workflow owns the study-tracker pipeline: per-app lint, unit tests with ≥ 80 % coverage, Docker build, and an advisory Trivy scan (via the reusable `_test-python-app.yaml`); then, if both upstream test jobs pass, the **e2e** job spins up k3d on the runner, deploys both apps, and runs ~18 HTTP integration tests. `Dependency Review` and `Gitleaks` also run on every PR.
 - **Push to `main`** — `Gitleaks` re-runs across full history. `release-please` opens (or updates) a per-component release PR (`study-tracker-api`, `study-tracker-web`).
 - **Release PR merged** — release-please cuts a per-component tag (`study-tracker-api-vX.Y.Z` or `study-tracker-web-vX.Y.Z`).
 - **Tag pushed** — `docker-build-push` builds the affected app and pushes to GHCR with build cache (linux/amd64 only):
@@ -29,11 +28,13 @@ The following are enabled via repo settings rather than committed workflow files
 
 Required status checks on `main` (configure in Settings → Rules → Rulesets):
 
-- `Study Tracker API Tests / tests-required`
-- `Study Tracker Web Tests / tests-required`
 - `Dependency Review / Dependency Review`
 - `Gitleaks / Gitleaks scan`
 - `CodeQL`
+
+The `E2E Tests / e2e-required` aggregator job runs on every PR but is **not yet a
+required check** — left informational while we observe stability on the GitHub-hosted
+runner. Add it to the ruleset once you're confident.
 
 ## Local development
 

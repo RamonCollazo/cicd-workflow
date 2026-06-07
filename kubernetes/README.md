@@ -1,5 +1,7 @@
 # Kubernetes / e2e tests
 
+![E2E Tests](https://github.com/RamonCollazo/cicd-workflow/actions/workflows/e2e-tests.yaml/badge.svg)
+
 End-to-end tests for the Study Tracker app on a local [k3d](https://k3d.io) cluster.
 The suite stands up a cluster, builds the API and Web Docker images, imports them into
 the cluster, applies kustomize, waits for both Deployments to roll out, and runs HTTP
@@ -83,6 +85,32 @@ Tests that mutate state always create rows tagged with a per-test unique tag
 (`e2e-<8 hex>`) and assert only on that tag's slice. They never assert on
 `total_sessions` or other global aggregates, so the suite is correct even when the
 cluster has leftover data from earlier runs.
+
+## Continuous integration
+
+The same suite runs on every PR and on pushes to `main` via
+[`.github/workflows/e2e-tests.yaml`][workflow]. That workflow owns the entire
+study-tracker PR pipeline:
+
+1. **`check_paths`** — figures out whether `apps/study-tracker/api/**`,
+   `apps/study-tracker/web/**`, or `kubernetes/**` changed.
+2. **`api-tests` / `web-tests`** — call the reusable
+   `_test-python-app.yaml` workflow (lint, unit tests with coverage, Docker
+   build, Trivy scan). Each runs only when its app's paths changed, or when
+   `kubernetes/**` changed (so e2e is always validated against fresh app code).
+3. **`e2e (k3d)`** — runs **only** if both upstream test jobs succeeded (or
+   were correctly skipped). Brings up k3d on the runner, builds + imports
+   images, applies kustomize, runs `uv run pytest`. Dumps cluster diagnostics
+   (`kubectl describe pods`, container logs) on failure.
+4. **`e2e-required`** — aggregator job. Pass-through when no relevant paths
+   changed; otherwise mirrors the e2e result.
+
+The suite is **not** currently a required status check on `main`; runs are
+informational while we observe stability on GitHub-hosted runners. Once
+confidence is established, the `E2E Tests / e2e-required` check can be added
+to the branch ruleset.
+
+[workflow]: ../.github/workflows/e2e-tests.yaml
 
 ## Relationship to `setup_cluster_local`
 
