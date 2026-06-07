@@ -140,6 +140,13 @@ def cluster(
         cluster_lib.create_cluster(cluster_name, K3D_CONFIG_PATH)
         created_here = True
 
+    # Ensure the kubeconfig context exists. `k3d cluster create` does this
+    # automatically, but when the cluster is being reused — or when the
+    # user's kubeconfig has been wiped between sessions — the context is
+    # missing and every `kubectl --context <ctx>` call fails. Idempotent.
+    if not skip_setup:
+        cluster_lib.merge_kubeconfig(cluster_name)
+
     yield cluster_name
 
     if not skip_setup and not keep and created_here:
