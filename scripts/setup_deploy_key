@@ -23,11 +23,11 @@ if [ ${#missing_vars[@]} -ne 0 ]; then
 fi
 
 KEY_DIR="/workspaces/$DEVPOD_WORKSPACE_ID/dev-keys"
-KEY_NAME="study_app_gitops_deploy_key"
+KEY_NAME="cicd_workflow_gitops_deploy_key"
 KEY_PATH="$KEY_DIR/$KEY_NAME"
 REPO="$GITUSER/$GITOPS_REPO"
-KEY_TITLE="Study App GitOps Deploy Key ($(hostname))" # Descriptive title
-KEY_COMMENT="deploy-key@study-app-gitops"             # Comment for the SSH key itself
+KEY_TITLE="Study Tracker App GitOps Deploy Key ($(hostname))"
+KEY_COMMENT="deploy-key@cicd-workflow-gitops"
 
 if ! command -v gh &>/dev/null; then
   echo "Error: GitHub CLI (gh) is not installed or not in PATH."
