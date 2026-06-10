@@ -128,3 +128,23 @@ jobs:
     outputs:
       tag: ${{ steps.image.outputs.version_tag }}
       image: study-tracker-web
+
+  trigger_gitops_dev:
+    name: Update gitops (dev)
+    needs: [build-and-push-api, build-and-push-web]
+    # One of the two build jobs is skipped on every tag push (the tag prefix
+    # determines which). Run as long as at least one succeeded.
+    if: |
+      needs.build-and-push-api.result == 'success' ||
+      needs.build-and-push-web.result == 'success'
+    uses: ./.github/workflows/update-gitops.yaml
+    with:
+      # Skipped jobs return empty-string outputs; the `||` resolves to
+      # whichever job actually ran.
+      image: ${{ needs.build-and-push-api.outputs.image || needs.build-and-push-web.outputs.image }}
+      tag: ${{ needs.build-and-push-api.outputs.tag || needs.build-and-push-web.outputs.tag }}
+      environment: dev
+      auto_merge: true
+    secrets:
+      gitops_app_id: ${{ secrets.GITOPS_APP_ID }}
+      gitops_app_key: ${{ secrets.GITOPS_APP_KEY }}
