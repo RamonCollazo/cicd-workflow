@@ -1,0 +1,130 @@
+name: Update GitOps
+
+# Reusable workflow that patches a kustomization in cicd-workflow-gitops with a
+# new image tag and opens (and optionally auto-merges) a PR.
+#
+# Required token (one of):
+#   - workflow_call:     secrets.gitops_token (passed by caller)
+#   - workflow_dispatch: secrets.GITOPS_TOKEN (set in repo settings)
+#
+# The token must be a fine-grained PAT (or GitHub App token) scoped to
+# RamonCollazo/cicd-workflow-gitops with these permissions:
+#   - Contents:      read & write   — to push the branch
+#   - Pull requests: read & write   — to create + auto-merge the PR
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        required: true
+        type: string
+        description: "Image name (e.g. study-tracker-api)."
+      tag:
+        required: true
+        type: string
+        description: "Image tag (e.g. v1.2.3)."
+      environment:
+        required: true
+        type: string
+        description: "Target environment (dev or prod)."
+      auto_merge:
+        required: false
+        type: boolean
+        default: false
+        description: "Auto-merge the resulting PR when checks pass."
+    secrets:
+      gitops_token:
+        required: true
+        description: "Token for cicd-workflow-gitops with contents:write + pull-requests:write."
+
+  workflow_dispatch:
+    inputs:
+      image:
+        required: true
+        type: choice
+        options:
+          - study-tracker-api
+          - study-tracker-web
+      tag:
+        required: true
+        type: string
+        default: v0.0.0-rc1-test
+      environment:
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
+        default: dev
+      auto_merge:
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# Serialize updates per (image, environment). Two near-simultaneous tags must
+# not race on the same kustomization.yaml.
+concurrency:
+  group: gitops-${{ inputs.image }}-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Patch ${{ inputs.image }} -> ${{ inputs.tag }} (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    env:
+      # Resolve from caller-supplied secret first, fall back to repo secret for
+      # workflow_dispatch runs.
+      GITOPS_TOKEN: ${{ secrets.gitops_token || secrets.GITOPS_TOKEN }}
+      GITOPS_REPO: ${{ github.repository_owner }}/cicd-workflow-gitops
+      BRANCH: gitops/${{ inputs.image }}/${{ inputs.tag }}
+
+    steps:
+      - name: Checkout gitops repo
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ github.repository_owner }}/cicd-workflow-gitops
+          token: ${{ env.GITOPS_TOKEN }}
+          path: gitops
+
+      - name: Patch kustomization
+        working-directory: gitops/apps/${{ inputs.environment }}
+        env:
+          OWNER: ${{ github.repository_owner }}
+          IMAGE: ${{ inputs.image }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          OWNER_LOWER="$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')"
+          IMAGE_REF="ghcr.io/${OWNER_LOWER}/${IMAGE}"
+          echo "Patching ${IMAGE_REF} -> ${TAG}"
+          kustomize edit set image "${IMAGE_REF}=${IMAGE_REF}:${TAG}"
+          echo "--- result ---"
+          cat kustomization.yaml
+
+      - name: Create or update PR
+        id: cpr
+        uses: peter-evans/create-pull-request@v6
+        with:
+          path: gitops
+          token: ${{ env.GITOPS_TOKEN }}
+          branch: ${{ env.BRANCH }}
+          delete-branch: true
+          commit-message: "chore: bump ${{ inputs.image }} to ${{ inputs.tag }} in ${{ inputs.environment }}"
+          title: "Bump ${{ inputs.image }} to ${{ inputs.tag }} in ${{ inputs.environment }}"
+          body: |
+            Automated promotion of `${{ inputs.image }}:${{ inputs.tag }}` into `${{ inputs.environment }}`.
+
+            Source: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          labels: |
+            gitops
+            ${{ inputs.environment }}
+
+      - name: Enable auto-merge
+        if: ${{ inputs.auto_merge && steps.cpr.outputs.pull-request-number != '' }}
+        env:
+          GH_TOKEN: ${{ env.GITOPS_TOKEN }}
+          PR_NUMBER: ${{ steps.cpr.outputs.pull-request-number }}
+        run: |
+          gh pr merge --auto --squash --repo "$GITOPS_REPO" "$PR_NUMBER"
