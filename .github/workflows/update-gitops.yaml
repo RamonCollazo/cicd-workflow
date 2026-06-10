@@ -139,10 +139,26 @@ jobs:
             gitops
             ${{ inputs.environment }}
 
-      - name: Enable auto-merge
+      - name: Merge PR (dev auto-promotion)
         if: ${{ inputs.auto_merge && steps.cpr.outputs.pull-request-number != '' }}
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_NUMBER: ${{ steps.cpr.outputs.pull-request-number }}
         run: |
-          gh pr merge --auto --squash --repo "$GITOPS_REPO" "$PR_NUMBER"
+          # The gitops repo has no branch protection / required checks, so merge
+          # immediately rather than using `gh pr merge --auto`. GitHub's
+          # auto-merge (enablePullRequestAutoMerge) requires a protected branch
+          # and errors with "Protected branch rules not configured" when the PR
+          # is already mergeable — a race that made --auto flaky here (it only
+          # worked when GitHub hadn't yet finished computing mergeability).
+          # Retry to absorb the brief delay while that computation completes.
+          for attempt in 1 2 3 4 5 6; do
+            if gh pr merge --squash --delete-branch --repo "$GITOPS_REPO" "$PR_NUMBER"; then
+              echo "Merged PR #${PR_NUMBER}"
+              exit 0
+            fi
+            echo "Merge attempt ${attempt} failed (PR may still be computing mergeability); retrying in 5s..."
+            sleep 5
+          done
+          echo "::error::Failed to merge PR #${PR_NUMBER} after 6 attempts"
+          exit 1
