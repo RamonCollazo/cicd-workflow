@@ -10,6 +10,7 @@ kustomize = "latest"
 pre-commit = "latest"
 python = "3.14"
 ruff = "latest"
+shellcheck = "latest"
 trivy = "latest"
 uv = "latest"
 
@@ -53,3 +54,50 @@ run = "bash ./kubernetes/setup_cluster_gitops study-tracker-gitops-prod clusters
 [tasks.k8s-teardown-gitops]
 description = "Delete both gitops test-rig clusters"
 run = "k3d cluster delete study-tracker-gitops-dev study-tracker-gitops-prod || true"
+
+# --------------------------------------------------------------------------- #
+# Local quality gates — mirror what CI runs (see .github/workflows)
+# --------------------------------------------------------------------------- #
+
+[tasks.lint-workflows]
+description = "Lint GitHub Actions workflows with actionlint (same as CI / pre-commit)"
+run = "actionlint"
+
+[tasks.lint-scripts]
+description = "Lint the CI shell scripts with shellcheck (same as pre-commit)"
+run = "shellcheck scripts/ci/*.sh"
+
+[tasks.check-api]
+description = "Run the full api quality gate locally (mirrors _python-service-tests.yaml)"
+dir = "apps/study-tracker/api"
+shell = "bash -c"
+run = """
+set -euo pipefail
+uv sync --locked --dev
+uv run ruff check src tests
+uv run ruff format --check src tests
+uv run mypy src
+uv run bandit -q -r src --skip B101
+bash ../../../scripts/ci/pip-audit.sh
+uv run pytest tests/ -v
+"""
+
+[tasks.check-web]
+description = "Run the full web quality gate locally (mirrors _python-service-tests.yaml)"
+dir = "apps/study-tracker/web"
+shell = "bash -c"
+run = """
+set -euo pipefail
+uv sync --locked --dev
+uv run ruff check src tests
+uv run ruff format --check src tests
+uv run mypy src
+uv run bandit -q -r src --skip B101
+bash ../../../scripts/ci/pip-audit.sh
+uv run pytest tests/ -v
+"""
+
+[tasks.check]
+description = "Run all local gates: workflows + scripts lint, both service gates. Mirrors CI."
+depends = ["lint-workflows", "lint-scripts", "check-api", "check-web"]
+
