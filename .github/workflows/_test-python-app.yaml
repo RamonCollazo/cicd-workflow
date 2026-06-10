@@ -30,7 +30,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
       - name: Install UV
-        uses: astral-sh/setup-uv@v8
+        uses: astral-sh/setup-uv@v8.2.0
       - name: Set up Python
         run: uv python install
       - name: Install dependencies
