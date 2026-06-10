@@ -13,7 +13,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # Sentinel used to detect when no SECRET_KEY was supplied; main() emits a
 # warning and create_app() also warns so operators know they're running
 # with an insecure default.
-DEV_INSECURE_SECRET_KEY = "dev-insecure-change-me"
+DEV_INSECURE_SECRET_KEY = "dev-insecure-change-me"  # nosec B105
 
 
 class Settings(BaseSettings):
@@ -31,7 +31,9 @@ class Settings(BaseSettings):
     api_retry_backoff: float = Field(default=0.3, ge=0.0, le=10.0)
 
     # Web server
-    frontend_host: str = "0.0.0.0"
+    # Binding to all interfaces is intentional: the service runs inside a
+    # container and must be reachable from outside it.
+    frontend_host: str = "0.0.0.0"  # nosec B104
     frontend_port: int = Field(default=3000, ge=1, le=65535)
 
     # Flask

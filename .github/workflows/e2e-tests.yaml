@@ -1,5 +1,11 @@
 name: E2E Tests
 
+# Standalone end-to-end pipeline. E2E exercises the apps running on Kubernetes,
+# so it is triggered by API or Web app changes (not by bare kubernetes/**
+# edits, which manifests-lint covers). Triggers on every PR so the required
+# `e2e-required` check always reports; path filtering is done internally and the
+# suite runs at most once per run (no double runs when both services change).
+
 on:
   pull_request:
   push:
@@ -14,75 +20,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check_paths:
+  changes:
+    name: Detect changes
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
-      api: ${{ steps.filter.outputs.api }}
-      web: ${{ steps.filter.outputs.web }}
-      e2e: ${{ steps.filter.outputs.e2e }}
+      apps: ${{ steps.filter.outputs.apps }}
     steps:
       - uses: actions/checkout@v6
       - uses: dorny/paths-filter@v4.0.1
         id: filter
         with:
           filters: |
-            api:
+            apps:
               - 'apps/study-tracker/api/**'
-              - '.github/workflows/_test-python-app.yaml'
-              - '.github/workflows/e2e-tests.yaml'
-            web:
               - 'apps/study-tracker/web/**'
-              - '.github/workflows/_test-python-app.yaml'
               - '.github/workflows/e2e-tests.yaml'
-            e2e:
-              - 'kubernetes/**'
-              - '.github/workflows/e2e-tests.yaml'
-
-  api-tests:
-    name: Test API
-    needs: check_paths
-    if: |
-      needs.check_paths.outputs.api == 'true' ||
-      needs.check_paths.outputs.e2e == 'true'
-    uses: ./.github/workflows/_test-python-app.yaml
-    with:
-      app_name: api
-      working_directory: ./apps/study-tracker/api/
-      image_name: study-tracker-api
-    permissions:
-      contents: read
-      pull-requests: write
-
-  web-tests:
-    name: Test Web
-    needs: check_paths
-    if: |
-      needs.check_paths.outputs.web == 'true' ||
-      needs.check_paths.outputs.e2e == 'true'
-    uses: ./.github/workflows/_test-python-app.yaml
-    with:
-      app_name: web
-      working_directory: ./apps/study-tracker/web/
-      image_name: study-tracker-web
-    permissions:
-      contents: read
-      pull-requests: write
 
   e2e:
     name: E2E (k3d)
-    needs: [check_paths, api-tests, web-tests]
-    # Run e2e only if both upstream test workflows succeeded (or were
-    # skipped because they weren't relevant) AND something interesting
-    # actually changed in this PR/push.
-    if: |
-      always() &&
-      (needs.api-tests.result == 'success' || needs.api-tests.result == 'skipped') &&
-      (needs.web-tests.result == 'success' || needs.web-tests.result == 'skipped') &&
-      (needs.check_paths.outputs.api == 'true' ||
-       needs.check_paths.outputs.web == 'true' ||
-       needs.check_paths.outputs.e2e == 'true')
+    needs: changes
+    if: needs.changes.outputs.apps == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: ./kubernetes
@@ -97,52 +57,24 @@ jobs:
         run: uv sync --locked --group dev
 
       - name: Run e2e suite
+        timeout-minutes: 15
         run: uv run pytest
 
       - name: Cluster diagnostics on failure
         if: failure()
-        run: |
-          set +e
-          CTX=k3d-study-tracker-cluster
-          echo "=== resources in study-tracker namespace ==="
-          kubectl --context "$CTX" get all -n study-tracker
-          echo ""
-          echo "=== pod descriptions ==="
-          kubectl --context "$CTX" describe pods -n study-tracker
-          echo ""
-          echo "=== api logs ==="
-          kubectl --context "$CTX" logs -n study-tracker -l component=study-tracker-api --tail=200
-          echo ""
-          echo "=== web logs ==="
-          kubectl --context "$CTX" logs -n study-tracker -l component=study-tracker-web --tail=200
+        run: bash "$GITHUB_WORKSPACE/scripts/ci/cluster-diagnostics.sh"
 
   e2e-required:
     name: e2e-required
-    needs: [check_paths, api-tests, web-tests, e2e]
+    needs: [changes, e2e]
     if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
+      - uses: actions/checkout@v6
       - name: Aggregate result
-        run: |
-          if [[ "${{ needs.check_paths.outputs.api }}" != "true" && \
-                "${{ needs.check_paths.outputs.web }}" != "true" && \
-                "${{ needs.check_paths.outputs.e2e }}" != "true" ]]; then
-            echo "No relevant paths changed; passing through."
-            exit 0
-          fi
-          if [[ "${{ needs.api-tests.result }}" != "success" && \
-                "${{ needs.api-tests.result }}" != "skipped" ]]; then
-            echo "API tests failed: ${{ needs.api-tests.result }}"
-            exit 1
-          fi
-          if [[ "${{ needs.web-tests.result }}" != "success" && \
-                "${{ needs.web-tests.result }}" != "skipped" ]]; then
-            echo "Web tests failed: ${{ needs.web-tests.result }}"
-            exit 1
-          fi
-          if [[ "${{ needs.e2e.result }}" == "success" ]]; then
-            echo "All checks passed."
-            exit 0
-          fi
-          echo "E2E failed or was cancelled: ${{ needs.e2e.result }}"
-          exit 1
+        env:
+          LABEL: E2E
+          CHANGED: ${{ needs.changes.outputs.apps }}
+          RESULT: ${{ needs.e2e.result }}
+        run: bash scripts/ci/required-gate.sh

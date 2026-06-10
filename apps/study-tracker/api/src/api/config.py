@@ -22,7 +22,9 @@ class Settings(BaseSettings):
     app_name: str = "Study Tracker"
 
     # API server
-    api_host: str = "0.0.0.0"
+    # Binding to all interfaces is intentional: the service runs inside a
+    # container and must be reachable from outside it.
+    api_host: str = "0.0.0.0"  # nosec B104
     api_port: int = Field(default=3001, ge=1, le=65535)
     reload: bool = False
 
