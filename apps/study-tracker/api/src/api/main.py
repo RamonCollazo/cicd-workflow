@@ -3,7 +3,7 @@
 The ASGI app is exposed as ``api.main:app``.
 """
 
-# CI: trigger pipeline to verify action version bumps (Node 24) + blocking Trivy.
+# Module entrypoint: defines the FastAPI ASGI app for the Study Tracker API.
 import logging
 from typing import List, Optional
 
