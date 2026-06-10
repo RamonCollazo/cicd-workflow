@@ -3,6 +3,7 @@
 The ASGI app is exposed as ``api.main:app``.
 """
 
+# CI: trigger pipeline to verify action version bumps (Node 24) + blocking Trivy.
 import logging
 from typing import List, Optional
 
