@@ -102,6 +102,10 @@ jobs:
           repository: ${{ github.repository_owner }}/cicd-workflow-gitops
           token: ${{ steps.app-token.outputs.token }}
           path: gitops
+          # Don't persist the token in .git/config — peter-evans/create-pull-request
+          # passes its own auth header for the push, and persisted creds cause a
+          # 'Duplicate header: Authorization' (HTTP 400) on the git push.
+          persist-credentials: false
 
       - name: Patch kustomization
         working-directory: gitops/apps/${{ inputs.environment }}
