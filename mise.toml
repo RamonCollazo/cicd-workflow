@@ -20,6 +20,7 @@ experimental = true
 [env]
 APP_REPO = 'cicd-workflow'
 GITOPS_REPO = 'cicd-workflow-gitops'
+GITUSER = 'RamonCollazo'
 
 [hooks]
 enter = "bash ./scripts/setup_project"
