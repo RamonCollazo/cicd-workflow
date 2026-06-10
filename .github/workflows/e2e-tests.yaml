@@ -94,7 +94,7 @@ jobs:
         uses: jdx/mise-action@v2
 
       - name: Sync e2e dependencies
-        run: uv sync --group dev
+        run: uv sync --locked --group dev
 
       - name: Run e2e suite
         run: uv run pytest
