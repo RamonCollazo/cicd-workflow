@@ -149,5 +149,5 @@ jobs:
       environment: dev
       auto_merge: true
     secrets:
-      gitops_app_id: ${{ secrets.GITOPS_APP_ID }}
+      gitops_app_client_id: ${{ secrets.GITOPS_APP_CLIENT_ID }}
       gitops_app_key: ${{ secrets.GITOPS_APP_KEY }}

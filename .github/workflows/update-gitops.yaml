@@ -10,10 +10,13 @@ name: Update GitOps
 #     - Pull requests: read & write   — to create + auto-merge the PR
 #
 # Required secrets (one of):
-#   - workflow_call:     secrets.gitops_app_id + secrets.gitops_app_key
+#   - workflow_call:     secrets.gitops_app_client_id + secrets.gitops_app_key
 #                        (passed by caller)
-#   - workflow_dispatch: secrets.GITOPS_APP_ID + secrets.GITOPS_APP_KEY
+#   - workflow_dispatch: secrets.GITOPS_APP_CLIENT_ID + secrets.GITOPS_APP_KEY
 #                        (set in repo settings)
+#
+# Note: create-github-app-token uses the App's *Client ID* (e.g. Iv23li...),
+# not the numeric App ID. The private key is unchanged.
 
 on:
   workflow_call:
@@ -36,9 +39,9 @@ on:
         default: false
         description: "Auto-merge the resulting PR when checks pass."
     secrets:
-      gitops_app_id:
+      gitops_app_client_id:
         required: true
-        description: "GitHub App ID for the gitops bot."
+        description: "GitHub App Client ID (e.g. Iv23li...) for the gitops bot."
       gitops_app_key:
         required: true
         description: "GitHub App private key (PEM) for the gitops bot."
@@ -91,7 +94,7 @@ jobs:
         with:
           # Resolve from caller-supplied secret first, fall back to repo
           # secret for workflow_dispatch runs.
-          app-id: ${{ secrets.gitops_app_id || secrets.GITOPS_APP_ID }}
+          client-id: ${{ secrets.gitops_app_client_id || secrets.GITOPS_APP_CLIENT_ID }}
           private-key: ${{ secrets.gitops_app_key || secrets.GITOPS_APP_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: cicd-workflow-gitops

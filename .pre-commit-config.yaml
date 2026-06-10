@@ -13,6 +13,16 @@ repos:
     rev: v1.7.7
     hooks:
       - id: actionlint
+        # actionlint's bundled action metadata is stale for
+        # actions/create-github-app-token@v3: it doesn't know the `client-id`
+        # input (added in v3) and still thinks `app-id` is required. Both are
+        # false positives — verified against the action's v3 action.yml.
+        # Scope the ignore narrowly to this one action.
+        args:
+          - -ignore
+          - 'input "client-id" is not defined in action "actions/create-github-app-token'
+          - -ignore
+          - 'missing input "app-id" which is required by action "actions/create-github-app-token'
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.10.0.1
     hooks:
