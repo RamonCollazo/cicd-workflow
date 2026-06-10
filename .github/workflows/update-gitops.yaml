@@ -107,19 +107,21 @@ jobs:
           # 'Duplicate header: Authorization' (HTTP 400) on the git push.
           persist-credentials: false
 
+      - name: Checkout actions repo (for CI scripts)
+        uses: actions/checkout@v6
+        with:
+          path: actions-repo
+          persist-credentials: false
+
       - name: Patch kustomization
-        working-directory: gitops/apps/${{ inputs.environment }}
         env:
           OWNER: ${{ github.repository_owner }}
           IMAGE: ${{ inputs.image }}
           TAG: ${{ inputs.tag }}
-        run: |
-          OWNER_LOWER="$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')"
-          IMAGE_REF="ghcr.io/${OWNER_LOWER}/${IMAGE}"
-          echo "Patching ${IMAGE_REF} -> ${TAG}"
-          kustomize edit set image "${IMAGE_REF}=${IMAGE_REF}:${TAG}"
-          echo "--- result ---"
-          cat kustomization.yaml
+          ENVIRONMENT: ${{ inputs.environment }}
+        # The gitops repo is checked out under gitops/; the script cd's into the
+        # target overlay and runs `kustomize edit set image`.
+        run: bash actions-repo/scripts/ci/patch-kustomization.sh "gitops/apps/${ENVIRONMENT}"
 
       - name: Create or update PR
         id: cpr

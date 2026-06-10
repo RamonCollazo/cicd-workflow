@@ -70,7 +70,7 @@ class ApiClient:
         Raises ``ApiError`` on failure.
         """
         url = f"{self._base_url}/sessions"
-        payload = {"minutes": minutes, "tag": tag}
+        payload: dict[str, Any] = {"minutes": minutes, "tag": tag}
         try:
             response = self._session.post(url, json=payload, timeout=self._timeout)
             response.raise_for_status()

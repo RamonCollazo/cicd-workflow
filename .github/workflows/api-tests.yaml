@@ -1,0 +1,61 @@
+name: API Tests
+
+# Triggers on every PR (no on-level paths filter) so the required `api-required`
+# status check always reports. Path filtering is done INTERNALLY via
+# dorny/paths-filter; the heavy test job only runs when the API is affected, and
+# the gate job passes through cleanly otherwise.
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v4.0.1
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'apps/study-tracker/api/**'
+              - '.github/workflows/_python-service-tests.yaml'
+              - '.github/workflows/api-tests.yaml'
+
+  test:
+    name: Test
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    uses: ./.github/workflows/_python-service-tests.yaml
+    permissions:
+      contents: read
+      pull-requests: write
+    with:
+      service: api
+      working-directory: ./apps/study-tracker/api
+
+  api-required:
+    name: api-required
+    needs: [changes, test]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - name: Aggregate result
+        env:
+          LABEL: API
+          CHANGED: ${{ needs.changes.outputs.api }}
+          RESULT: ${{ needs.test.result }}
+        run: bash scripts/ci/required-gate.sh

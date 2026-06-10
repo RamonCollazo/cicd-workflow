@@ -25,9 +25,14 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write      # keyless cosign signing (OIDC)
+      attestations: write  # SBOM + provenance attestations
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -42,33 +47,38 @@ jobs:
       - name: Compute image name and tags
         id: image
         env:
+          REGISTRY: ${{ env.REGISTRY }}
           OWNER: ${{ github.repository_owner }}
           GIT_TAG: ${{ github.ref_name }}
           TAG_PREFIX: study-tracker-api-v
           IMAGE_NAME: study-tracker-api
-        run: |
-          # Lowercase the owner segment for GHCR
-          IMAGE="${REGISTRY}/${OWNER,,}/${IMAGE_NAME}"
-          # Strip the full "study-tracker-api-v" prefix to get bare semver, then re-prefix with v.
-          # Example: study-tracker-api-v0.3.1 -> 0.3.1 -> v0.3.1
-          BARE="${GIT_TAG#${TAG_PREFIX}}"
-          VERSION_TAG="v${BARE}"
-          {
-            echo "name=${IMAGE}"
-            echo "version_tag=${VERSION_TAG}"
-            echo "latest_tag=latest"
-          } >> "$GITHUB_OUTPUT"
+        run: bash scripts/ci/compute-image-tags.sh
 
       - name: Build and push API Docker image
+        id: build
         uses: docker/build-push-action@v7
         with:
           context: ./apps/study-tracker/api
           push: true
+          platforms: linux/amd64,linux/arm64
+          provenance: mode=max
+          sbom: true
           cache-from: type=gha,scope=api
           cache-to: type=gha,mode=max,scope=api
           tags: |
             ${{ steps.image.outputs.name }}:${{ steps.image.outputs.version_tag }}
             ${{ steps.image.outputs.name }}:${{ steps.image.outputs.latest_tag }}
+            ${{ steps.image.outputs.name }}:sha-${{ github.sha }}
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign image (keyless)
+        env:
+          IMAGE: ${{ steps.image.outputs.name }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        # Signing by digest covers every tag pointing at it (version, latest, sha).
+        run: cosign sign --yes "${IMAGE}@${DIGEST}"
     outputs:
       tag: ${{ steps.image.outputs.version_tag }}
       image: study-tracker-api
@@ -81,9 +91,14 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write      # keyless cosign signing (OIDC)
+      attestations: write  # SBOM + provenance attestations
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -98,33 +113,38 @@ jobs:
       - name: Compute image name and tags
         id: image
         env:
+          REGISTRY: ${{ env.REGISTRY }}
           OWNER: ${{ github.repository_owner }}
           GIT_TAG: ${{ github.ref_name }}
           TAG_PREFIX: study-tracker-web-v
           IMAGE_NAME: study-tracker-web
-        run: |
-          # Lowercase the owner segment for GHCR
-          IMAGE="${REGISTRY}/${OWNER,,}/${IMAGE_NAME}"
-          # Strip the full "study-tracker-web-v" prefix to get bare semver, then re-prefix with v.
-          # Example: study-tracker-web-v0.1.0 -> 0.1.0 -> v0.1.0
-          BARE="${GIT_TAG#${TAG_PREFIX}}"
-          VERSION_TAG="v${BARE}"
-          {
-            echo "name=${IMAGE}"
-            echo "version_tag=${VERSION_TAG}"
-            echo "latest_tag=latest"
-          } >> "$GITHUB_OUTPUT"
+        run: bash scripts/ci/compute-image-tags.sh
 
       - name: Build and push Web Docker image
+        id: build
         uses: docker/build-push-action@v7
         with:
           context: ./apps/study-tracker/web
           push: true
+          platforms: linux/amd64,linux/arm64
+          provenance: mode=max
+          sbom: true
           cache-from: type=gha,scope=web
           cache-to: type=gha,mode=max,scope=web
           tags: |
             ${{ steps.image.outputs.name }}:${{ steps.image.outputs.version_tag }}
             ${{ steps.image.outputs.name }}:${{ steps.image.outputs.latest_tag }}
+            ${{ steps.image.outputs.name }}:sha-${{ github.sha }}
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign image (keyless)
+        env:
+          IMAGE: ${{ steps.image.outputs.name }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        # Signing by digest covers every tag pointing at it (version, latest, sha).
+        run: cosign sign --yes "${IMAGE}@${DIGEST}"
     outputs:
       tag: ${{ steps.image.outputs.version_tag }}
       image: study-tracker-web
