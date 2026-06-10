@@ -87,7 +87,7 @@ jobs:
     steps:
       - name: Mint installation token
         id: app-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@v2
         with:
           # Resolve from caller-supplied secret first, fall back to repo
           # secret for workflow_dispatch runs.
@@ -123,7 +123,7 @@ jobs:
 
       - name: Create or update PR
         id: cpr
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v8
         with:
           path: gitops
           token: ${{ steps.app-token.outputs.token }}
