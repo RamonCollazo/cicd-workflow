@@ -30,7 +30,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
       - name: Install UV
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+        uses: astral-sh/setup-uv@v8.2.0
       - name: Set up Python
         run: uv python install
       - name: Install dependencies
@@ -71,8 +71,9 @@ jobs:
         with:
           image-ref: "${{ inputs.image_name }}:latest"
           format: "table"
-          exit-code: "0"
-          # exit-code: '1' # Fail the workflow if vulnerabilities are found.
+          # Fail the build on fixable CRITICAL/HIGH vulnerabilities.
+          # ignore-unfixed keeps us from blocking on CVEs with no upstream fix.
+          exit-code: "1"
           ignore-unfixed: true
           vuln-type: "os,library"
           severity: "CRITICAL,HIGH"
