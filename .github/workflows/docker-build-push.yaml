@@ -71,7 +71,7 @@ jobs:
             ${{ steps.image.outputs.name }}:${{ steps.image.outputs.latest_tag }}
     outputs:
       tag: ${{ steps.image.outputs.version_tag }}
-      app: study-tracker-api
+      image: study-tracker-api
 
   build-and-push-web:
     name: Build and Push Web
@@ -127,4 +127,4 @@ jobs:
             ${{ steps.image.outputs.name }}:${{ steps.image.outputs.latest_tag }}
     outputs:
       tag: ${{ steps.image.outputs.version_tag }}
-      app: study-tracker-web
+      image: study-tracker-web
