@@ -54,4 +54,5 @@ flux bootstrap git \
   --url "ssh://git@github.com/${GITUSER}/${GITOPS_REPO}" \
   --branch main \
   --private-key-file "${KEY_PATH}" \
-  --path "${FLUX_PATH}"
+  --path "${FLUX_PATH}" \
+  --silent
