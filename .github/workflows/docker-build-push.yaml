@@ -132,11 +132,14 @@ jobs:
   trigger_gitops_dev:
     name: Update gitops (dev)
     needs: [build-and-push-api, build-and-push-web]
-    # One of the two build jobs is skipped on every tag push (the tag prefix
-    # determines which). Run as long as at least one succeeded.
+    # always() overrides the default 'skip-when-any-need-is-skipped' behavior
+    # of `needs:` — one of the two build jobs is always skipped on a tag push
+    # (the prefix selects which). The OR condition then ensures we only run
+    # when at least one build succeeded.
     if: |
-      needs.build-and-push-api.result == 'success' ||
-      needs.build-and-push-web.result == 'success'
+      always() &&
+      (needs.build-and-push-api.result == 'success' ||
+       needs.build-and-push-web.result == 'success')
     uses: ./.github/workflows/update-gitops.yaml
     with:
       # Skipped jobs return empty-string outputs; the `||` resolves to
