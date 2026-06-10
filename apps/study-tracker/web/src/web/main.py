@@ -5,7 +5,7 @@ The WSGI app is exposed as ``web.main:app`` for WSGI servers.
 this module remains free of network and logging side effects.
 """
 
-# CI: trigger pipeline to verify action version bumps (Node 24) + blocking Trivy.
+# Module entrypoint: defines the Flask WSGI app for the Study Tracker web UI.
 from __future__ import annotations
 
 import logging
