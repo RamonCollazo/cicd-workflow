@@ -3,14 +3,17 @@ name: Update GitOps
 # Reusable workflow that patches a kustomization in cicd-workflow-gitops with a
 # new image tag and opens (and optionally auto-merges) a PR.
 #
-# Required token (one of):
-#   - workflow_call:     secrets.gitops_token (passed by caller)
-#   - workflow_dispatch: secrets.GITOPS_TOKEN (set in repo settings)
+# Authentication:
+#   Uses a GitHub App installation token. The App must be installed on
+#   RamonCollazo/cicd-workflow-gitops with these repository permissions:
+#     - Contents:      read & write   — to push the branch
+#     - Pull requests: read & write   — to create + auto-merge the PR
 #
-# The token must be a fine-grained PAT (or GitHub App token) scoped to
-# RamonCollazo/cicd-workflow-gitops with these permissions:
-#   - Contents:      read & write   — to push the branch
-#   - Pull requests: read & write   — to create + auto-merge the PR
+# Required secrets (one of):
+#   - workflow_call:     secrets.gitops_app_id + secrets.gitops_app_key
+#                        (passed by caller)
+#   - workflow_dispatch: secrets.GITOPS_APP_ID + secrets.GITOPS_APP_KEY
+#                        (set in repo settings)
 
 on:
   workflow_call:
@@ -33,9 +36,12 @@ on:
         default: false
         description: "Auto-merge the resulting PR when checks pass."
     secrets:
-      gitops_token:
+      gitops_app_id:
         required: true
-        description: "Token for cicd-workflow-gitops with contents:write + pull-requests:write."
+        description: "GitHub App ID for the gitops bot."
+      gitops_app_key:
+        required: true
+        description: "GitHub App private key (PEM) for the gitops bot."
 
   workflow_dispatch:
     inputs:
@@ -75,18 +81,26 @@ jobs:
     name: Patch ${{ inputs.image }} -> ${{ inputs.tag }} (${{ inputs.environment }})
     runs-on: ubuntu-latest
     env:
-      # Resolve from caller-supplied secret first, fall back to repo secret for
-      # workflow_dispatch runs.
-      GITOPS_TOKEN: ${{ secrets.gitops_token || secrets.GITOPS_TOKEN }}
       GITOPS_REPO: ${{ github.repository_owner }}/cicd-workflow-gitops
       BRANCH: gitops/${{ inputs.image }}/${{ inputs.tag }}
 
     steps:
+      - name: Mint installation token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          # Resolve from caller-supplied secret first, fall back to repo
+          # secret for workflow_dispatch runs.
+          app-id: ${{ secrets.gitops_app_id || secrets.GITOPS_APP_ID }}
+          private-key: ${{ secrets.gitops_app_key || secrets.GITOPS_APP_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: cicd-workflow-gitops
+
       - name: Checkout gitops repo
         uses: actions/checkout@v6
         with:
           repository: ${{ github.repository_owner }}/cicd-workflow-gitops
-          token: ${{ env.GITOPS_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
           path: gitops
 
       - name: Patch kustomization
@@ -108,7 +122,7 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           path: gitops
-          token: ${{ env.GITOPS_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
           branch: ${{ env.BRANCH }}
           delete-branch: true
           commit-message: "chore: bump ${{ inputs.image }} to ${{ inputs.tag }} in ${{ inputs.environment }}"
@@ -124,7 +138,7 @@ jobs:
       - name: Enable auto-merge
         if: ${{ inputs.auto_merge && steps.cpr.outputs.pull-request-number != '' }}
         env:
-          GH_TOKEN: ${{ env.GITOPS_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_NUMBER: ${{ steps.cpr.outputs.pull-request-number }}
         run: |
           gh pr merge --auto --squash --repo "$GITOPS_REPO" "$PR_NUMBER"
