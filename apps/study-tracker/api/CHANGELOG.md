@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.3](https://github.com/RamonCollazo/cicd-workflow/compare/study-tracker-api-v0.3.2...study-tracker-api-v0.3.3) (2026-06-10)
+
+
+### Bug Fixes
+
+* replace throwaway CI marker comments with module notes ([#57](https://github.com/RamonCollazo/cicd-workflow/issues/57)) ([b64351c](https://github.com/RamonCollazo/cicd-workflow/commit/b64351c00f46520347db2438845c1459964e86af))
+
 ## [0.3.2](https://github.com/RamonCollazo/cicd-workflow/compare/study-tracker-api-v0.3.1...study-tracker-api-v0.3.2) (2026-06-06)
 
 
