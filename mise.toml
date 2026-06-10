@@ -39,3 +39,15 @@ run = "cd ./kubernetes/ && uv sync --group dev && uv run pytest"
 [tasks.setup-key]
 description = "Set up a deploy key for our repo"
 run = "bash ./scripts/setup_deploy_key"
+
+[tasks.k8s-setup-gitops-dev]
+description = "Bring up local dev gitops cluster (k3d + Flux watching clusters/dev)"
+run = "bash ./kubernetes/setup_cluster_gitops study-tracker-gitops-dev clusters/dev"
+
+[tasks.k8s-setup-gitops-prod]
+description = "Bring up local prod gitops cluster (k3d + Flux watching clusters/prod)"
+run = "bash ./kubernetes/setup_cluster_gitops study-tracker-gitops-prod clusters/prod"
+
+[tasks.k8s-teardown-gitops]
+description = "Delete both gitops test-rig clusters"
+run = "k3d cluster delete study-tracker-gitops-dev study-tracker-gitops-prod || true"
