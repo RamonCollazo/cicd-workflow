@@ -87,7 +87,7 @@ jobs:
     steps:
       - name: Mint installation token
         id: app-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
           # Resolve from caller-supplied secret first, fall back to repo
           # secret for workflow_dispatch runs.
