@@ -1,14 +1,12 @@
-#!/bin/bash
-
-# Exit immediately if a command exits with a non-zero status.
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
 # Check for required environment variables
 required_vars=("DEVPOD_WORKSPACE_ID" "GITUSER" "GITOPS_REPO")
 missing_vars=()
 
 for var in "${required_vars[@]}"; do
-  if [ -z "${!var}" ]; then
+  if [ -z "${!var:-}" ]; then
     missing_vars+=("$var")
   fi
 done
