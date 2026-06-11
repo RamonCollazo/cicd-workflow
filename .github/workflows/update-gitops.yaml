@@ -131,8 +131,8 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
           branch: ${{ env.BRANCH }}
           delete-branch: true
-          commit-message: "chore: bump ${{ inputs.image }} to ${{ inputs.tag }} in ${{ inputs.environment }}"
-          title: "Bump ${{ inputs.image }} to ${{ inputs.tag }} in ${{ inputs.environment }}"
+          commit-message: "chore(${{ inputs.environment }}): bump ${{ inputs.image }} to ${{ inputs.tag }}"
+          title: "chore(${{ inputs.environment }}): bump ${{ inputs.image }} to ${{ inputs.tag }}"
           body: |
             Automated promotion of `${{ inputs.image }}:${{ inputs.tag }}` into `${{ inputs.environment }}`.
 
