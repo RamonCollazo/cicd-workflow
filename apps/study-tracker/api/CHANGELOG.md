@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.4](https://github.com/RamonCollazo/cicd-workflow/compare/study-tracker-api-v0.3.3...study-tracker-api-v0.3.4) (2026-06-11)
+
+
+### Bug Fixes
+
+* **gha:** commets for ci test ([#63](https://github.com/RamonCollazo/cicd-workflow/issues/63)) ([02ace4e](https://github.com/RamonCollazo/cicd-workflow/commit/02ace4eaeae64c0e863f692ec61aaef58359f456))
+
 ## [0.3.3](https://github.com/RamonCollazo/cicd-workflow/compare/study-tracker-api-v0.3.2...study-tracker-api-v0.3.3) (2026-06-10)
 
 
