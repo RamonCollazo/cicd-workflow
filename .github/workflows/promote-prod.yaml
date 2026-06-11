@@ -1,0 +1,91 @@
+name: Promote to Prod
+
+# Gated dev -> prod promotion.
+#
+# Flow:
+#   1. resolve  — reads the tag currently running in the gitops dev overlay.
+#                 This job targets the `production` GitHub Environment, so it
+#                 PAUSES for a required reviewer before it runs (the gate).
+#   2. promote  — calls the existing update-gitops reusable workflow to open a
+#                 PR bumping the prod overlay to that same (proven) tag. The PR
+#                 is NOT auto-merged: prod lands only after a human merges it.
+#
+# Setup (once, in repo settings):
+#   Settings -> Environments -> New environment "production"
+#     - add Required reviewers
+#     - (optional) restrict deployment branches to `main`
+#   Secrets GITOPS_APP_ID / GITOPS_APP_KEY already exist; optionally scope them
+#   to the production environment.
+
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: "Image to promote from dev -> prod"
+        type: choice
+        options:
+          - study-tracker-api
+          - study-tracker-web
+        required: true
+
+permissions:
+  contents: read
+
+# Don't let two promotions of the same image race on the prod overlay.
+concurrency:
+  group: promote-prod-${{ inputs.image }}
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    name: Resolve dev tag (awaiting approval)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production  # required-reviewer gate
+    outputs:
+      tag: ${{ steps.devtag.outputs.tag }}
+    steps:
+      - name: Mint installation token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.GITOPS_APP_ID }}
+          private-key: ${{ secrets.GITOPS_APP_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: cicd-workflow-gitops
+
+      - name: Checkout gitops repo
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ github.repository_owner }}/cicd-workflow-gitops
+          token: ${{ steps.app-token.outputs.token }}
+          path: gitops
+          persist-credentials: false
+
+      - name: Checkout actions repo (for CI scripts)
+        uses: actions/checkout@v6
+        with:
+          path: actions-repo
+          persist-credentials: false
+
+      - name: Read the tag currently deployed in dev
+        id: devtag
+        env:
+          OWNER: ${{ github.repository_owner }}
+          IMAGE: ${{ inputs.image }}
+        run: bash actions-repo/scripts/ci/read-image-tag.sh gitops/apps/dev
+
+  promote:
+    name: Open prod promotion PR
+    needs: resolve
+    uses: ./.github/workflows/update-gitops.yaml
+    permissions:
+      contents: read
+    with:
+      image: ${{ inputs.image }}
+      tag: ${{ needs.resolve.outputs.tag }}
+      environment: prod
+      auto_merge: false  # prod lands via a reviewed PR, not auto-merge
+    secrets:
+      gitops_app_id: ${{ secrets.GITOPS_APP_ID }}
+      gitops_app_key: ${{ secrets.GITOPS_APP_KEY }}
