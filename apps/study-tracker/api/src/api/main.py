@@ -98,6 +98,7 @@ async def read_stats() -> Stats:
 # This comment is used to trigger the CI pipeline when changes are made to this file.
 # This comment is used to trigger the CI pipeline when changes are made to this file.
 # This comment is used to trigger the CI pipeline when changes are made to this file.
+# This comment is used to trigger the CI pipeline when changes are made to this file.
 
 
 def setup_logging(level: str = "INFO") -> None:
